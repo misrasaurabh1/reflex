@@ -85,7 +85,9 @@ def get_web_dir() -> Path:
     Returns:
         The working directory.
     """
-    return environment.REFLEX_WEB_WORKDIR.get()
+    if not hasattr(get_web_dir, "_cached"):
+        get_web_dir._cached = environment.REFLEX_WEB_WORKDIR.get()
+    return get_web_dir._cached
 
 
 def get_states_dir() -> Path:
