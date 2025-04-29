@@ -7,6 +7,7 @@ import concurrent.futures
 import traceback
 from collections.abc import Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -27,6 +28,7 @@ from reflex.components.base import (
     Title,
 )
 from reflex.components.component import Component, ComponentStyle, CustomComponent
+from reflex.config import environment
 from reflex.istate.storage import Cookie, LocalStorage, SessionStorage
 from reflex.state import BaseState, _resolve_delta
 from reflex.style import Style
@@ -436,6 +438,7 @@ def get_context_path() -> str:
     return str(get_web_dir() / (constants.Dirs.CONTEXTS_PATH + constants.Ext.JS))
 
 
+@lru_cache(maxsize=1)
 def get_components_path() -> str:
     """Get the path of the compiled components.
 
@@ -443,9 +446,9 @@ def get_components_path() -> str:
         The path of the compiled components.
     """
     return str(
-        get_web_dir()
+        get_web_dir_cached()
         / constants.Dirs.UTILS
-        / (constants.PageNames.COMPONENTS + constants.Ext.JS),
+        / (constants.PageNames.COMPONENTS + constants.Ext.JS)
     )
 
 
@@ -545,3 +548,13 @@ def is_valid_url(url: str) -> bool:
     """
     result = urlparse(url)
     return all([result.scheme, result.netloc])
+
+
+@lru_cache(maxsize=1)
+def get_web_dir_cached() -> Path:
+    """Get the working directory for the next.js commands, cached for efficiency.
+
+    Returns:
+        The working directory.
+    """
+    return environment.REFLEX_WEB_WORKDIR.get()
