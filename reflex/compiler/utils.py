@@ -543,5 +543,23 @@ def is_valid_url(url: str) -> bool:
     Returns:
         Whether url is valid.
     """
-    result = urlparse(url)
-    return all([result.scheme, result.netloc])
+    # Fast path: check for typical URLs
+    try:
+        scheme_sep = url.index("://")
+        if scheme_sep == 0:
+            return False  # Empty scheme
+        netloc_start = scheme_sep + 3
+        if netloc_start >= len(url):
+            return False  # Nothing after scheme
+        # Accept everything after scheme up to the next slash or end-of-string
+        netloc_end = url.find("/", netloc_start)
+        if netloc_end == -1:
+            netloc_end = len(url)
+        netloc = url[netloc_start:netloc_end]
+        if not netloc:
+            return False  # Empty netloc
+        return True
+    except ValueError:
+        # '://' not found, fallback to the slow but robust urlparse
+        result = urlparse(url)
+        return bool(result.scheme and result.netloc)
