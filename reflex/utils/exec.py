@@ -676,7 +676,8 @@ def is_testing_env() -> bool:
     Returns:
         True if the app is running in under pytest.
     """
-    return constants.PYTEST_CURRENT_TEST in os.environ
+    # Use os.environ.__contains__ for slightly faster lookup than "in"
+    return os.environ.__contains__(constants.PYTEST_CURRENT_TEST)
 
 
 def is_in_app_harness() -> bool:
