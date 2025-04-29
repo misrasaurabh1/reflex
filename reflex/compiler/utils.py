@@ -223,14 +223,26 @@ def _compile_client_storage_field(
     Returns:
         A dictionary of the compiled cookie or None if the field is not cookie-like.
     """
-    for field_type in (Cookie, LocalStorage, SessionStorage):
-        if isinstance(field.default, field_type):
-            cs_obj = field.default
-        elif isinstance(field.type_, type) and issubclass(field.type_, field_type):
-            cs_obj = field.type_()
-        else:
-            continue
-        return field_type, cs_obj.options()
+    default = field.default
+    type_ = field.type_
+
+    # Try matching default instance first for all types (faster for most common case)
+    if isinstance(default, Cookie):
+        return Cookie, default.options()
+    if isinstance(default, LocalStorage):
+        return LocalStorage, default.options()
+    if isinstance(default, SessionStorage):
+        return SessionStorage, default.options()
+
+    # Now try type_, else fail
+    if isinstance(type_, type):
+        if issubclass(type_, Cookie):
+            return Cookie, type_().options()
+        if issubclass(type_, LocalStorage):
+            return LocalStorage, type_().options()
+        if issubclass(type_, SessionStorage):
+            return SessionStorage, type_().options()
+
     return None, None
 
 
