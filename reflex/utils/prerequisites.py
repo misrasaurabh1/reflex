@@ -22,6 +22,7 @@ import typing
 import zipfile
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
 from typing import NamedTuple
@@ -2111,3 +2112,13 @@ def get_user_tier():
         if authenticated_token[0]
         else "anonymous"
     )
+
+
+@lru_cache(maxsize=1)
+def get_web_dir_cached() -> Path:
+    """Get the working directory for the next.js commands, cached for efficiency.
+
+    Returns:
+        The working directory.
+    """
+    return environment.REFLEX_WEB_WORKDIR.get()
