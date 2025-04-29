@@ -433,7 +433,8 @@ def get_context_path() -> str:
     Returns:
         The path of the context module.
     """
-    return str(get_web_dir() / (constants.Dirs.CONTEXTS_PATH + constants.Ext.JS))
+    context_file = f"{constants.Dirs.CONTEXTS_PATH}{constants.Ext.JS}"
+    return str(get_web_dir() / context_file)
 
 
 def get_components_path() -> str:
