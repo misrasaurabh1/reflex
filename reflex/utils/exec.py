@@ -685,7 +685,8 @@ def is_in_app_harness() -> bool:
     Returns:
         True if the app is running in the app harness.
     """
-    return constants.APP_HARNESS_FLAG in os.environ
+    env = os.environ
+    return env.__contains__(constants.APP_HARNESS_FLAG)
 
 
 def is_prod_mode() -> bool:
