@@ -398,7 +398,11 @@ def get_page_path(path: str) -> str:
     Returns:
         The path of the compiled JS file.
     """
-    return str(get_web_dir() / constants.Dirs.PAGES / (path + constants.Ext.JS))
+    # Use local vars to minimize attribute lookups.
+    web_dir = get_web_dir()
+    pages = constants.Dirs.PAGES
+    ext_js = constants.Ext.JS
+    return str(web_dir / pages / (path + ext_js))
 
 
 def get_theme_path() -> str:
