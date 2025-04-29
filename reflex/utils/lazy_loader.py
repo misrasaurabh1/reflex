@@ -17,7 +17,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 from __future__ import annotations
 
-import copy
 import importlib
 import os
 import sys
@@ -43,23 +42,20 @@ def attach(
     Returns:
         __getattr__, __dir__, __all__
     """
-    submod_attrs = copy.deepcopy(submod_attrs)
+    # Only transform submod_attrs if it's not None and contains tuples.
+    attr_to_modules = {}
     if submod_attrs:
-        for k, v in submod_attrs.items():
-            # when flattening the list, only keep the alias in the tuple(mod[1])
-            submod_attrs[k] = [
-                mod if not isinstance(mod, tuple) else mod[1] for mod in v
-            ]
-
-    if submod_attrs is None:
-        submod_attrs = {}
+        for mod, attrs in submod_attrs.items():
+            for attr in attrs:
+                # When flattening the list, only keep the alias in the tuple (mod[1])
+                if isinstance(attr, tuple):
+                    attr_to_modules[attr[1]] = mod
+                else:
+                    attr_to_modules[attr] = mod
 
     submodules = set(submodules) if submodules is not None else set()
 
-    attr_to_modules = {
-        attr: mod for mod, attrs in submod_attrs.items() for attr in attrs
-    }
-
+    # Only do set union once, and no need to convert dict_keys to set before union.
     __all__ = sorted(submodules | attr_to_modules.keys())
 
     def __getattr__(name: str):  # noqa: N807
@@ -69,14 +65,11 @@ def attach(
             submod_path = f"{package_name}.{attr_to_modules[name]}"
             submod = importlib.import_module(submod_path)
             attr = getattr(submod, name)
-
             # If the attribute lives in a file (module) with the same
             # name as the attribute, ensure that the attribute and *not*
             # the module is accessible on the package.
             if name == attr_to_modules[name]:
-                pkg = sys.modules[package_name]
-                pkg.__dict__[name] = attr
-
+                sys.modules[package_name].__dict__[name] = attr
             return attr
         else:
             raise AttributeError(f"No {package_name} attribute {name}")
@@ -84,8 +77,9 @@ def attach(
     def __dir__():  # noqa: N807
         return __all__
 
-    if os.environ.get("EAGER_IMPORT", ""):
-        for attr in set(attr_to_modules.keys()) | submodules:
+    if os.environ.get("EAGER_IMPORT"):
+        # Use list instead of set for deterministic order if __all__ is sorted.
+        for attr in __all__:
             __getattr__(attr)
 
-    return __getattr__, __dir__, list(__all__)
+    return __getattr__, __dir__, __all__
