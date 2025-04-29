@@ -407,11 +407,15 @@ def get_theme_path() -> str:
     Returns:
         The path of the theme style.
     """
-    return str(
-        get_web_dir()
-        / constants.Dirs.UTILS
-        / (constants.PageNames.THEME + constants.Ext.JS)
-    )
+    # Avoid recomputing/looking up constants more than once
+    web_dir = get_web_dir()
+    utils_dir = constants.Dirs.UTILS
+    theme_name = constants.PageNames.THEME
+    theme_ext = constants.Ext.JS
+
+    # Use Path.joinpath instead of chained "/" operators, and do string concatenation directly for last part.
+    theme_path = web_dir.joinpath(utils_dir, theme_name + theme_ext)
+    return str(theme_path)
 
 
 def get_root_stylesheet_path() -> str:
