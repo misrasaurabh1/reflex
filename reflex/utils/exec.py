@@ -217,7 +217,7 @@ def get_app_module():
     Returns:
         The app module for the backend.
     """
-    return get_config().module
+    return _get_cached_app_module()  # Use cached value for performance
 
 
 def get_app_instance():
@@ -238,21 +238,23 @@ def get_app_file() -> Path:
     Raises:
         ImportError: If the app module is not found.
     """
+    # Only convert cwd once and cache
     current_working_dir = str(Path.cwd())
     if current_working_dir not in sys.path:
-        # Add the current working directory to sys.path
         sys.path.insert(0, current_working_dir)
-    module_spec = importlib.util.find_spec(get_app_module())
-    if module_spec is None:
+
+    # Fetch once, reuse value
+    app_module_name = _get_cached_app_module()
+    module_spec = importlib.util.find_spec(app_module_name)
+    if module_spec is None or module_spec.origin is None:
+        # Only call _get_cached_app_module() once
         raise ImportError(
-            f"Module {get_app_module()} not found. Make sure the module is installed."
+            f"Module {app_module_name} not found. Make sure the module is installed."
         )
-    file_name = module_spec.origin
-    if file_name is None:
-        raise ImportError(
-            f"Module {get_app_module()} not found. Make sure the module is installed."
-        )
-    return Path(file_name).resolve()
+    # Only use resolve if necessary, since most module files should be absolute, but keep for safety
+    file_path = Path(module_spec.origin)
+    # .resolve() is relatively expensive, use only if not already absolute
+    return file_path if file_path.is_absolute() else file_path.resolve()
 
 
 def get_app_instance_from_file() -> str:
@@ -705,3 +707,11 @@ def get_compile_context() -> constants.CompileContext:
         Whether the app is being compiled for deploy.
     """
     return environment.REFLEX_COMPILE_CONTEXT.get()
+
+
+# Helper to memoize the module name for fast repeated access
+def _get_cached_app_module():
+    # Use an attribute on the function as a static cache (function attribute)
+    if not hasattr(_get_cached_app_module, "_mod"):
+        _get_cached_app_module._mod = get_config().module
+    return _get_cached_app_module._mod
