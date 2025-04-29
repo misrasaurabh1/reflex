@@ -8,7 +8,8 @@ from reflex.vars.base import Var
 
 
 def _compose_react_imports(tags: list[str]) -> dict[str, list[ImportVar]]:
-    return {"react": [ImportVar(tag=tag) for tag in tags]}
+    ImportVar_ = ImportVar  # local lookup is faster in tight loops
+    return {"react": [ImportVar_(tag) for tag in tags]}
 
 
 def const(name: str | list[str], value: str | Var) -> Var:
