@@ -122,6 +122,7 @@ class MarkdownComponentMap:
         )
 
     @classmethod
+    @lru_cache(maxsize=1)
     def get_fn_args(cls) -> Sequence[str]:
         """Get the function arguments for the component map.
 
