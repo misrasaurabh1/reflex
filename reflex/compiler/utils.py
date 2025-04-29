@@ -7,6 +7,7 @@ import concurrent.futures
 import traceback
 from collections.abc import Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -449,6 +450,7 @@ def get_components_path() -> str:
     )
 
 
+@lru_cache(maxsize=1)
 def get_stateful_components_path() -> str:
     """Get the path of the compiled stateful components.
 
