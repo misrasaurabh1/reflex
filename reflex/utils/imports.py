@@ -19,24 +19,43 @@ def merge_imports(
         The merged import dicts.
     """
     all_imports: defaultdict[str, list[ImportVar]] = defaultdict(list)
+
+    prefix_paths = ("/utils/", "/components/", "/styles/", "/public/")
+    prefix_marker = "$"
+
+    def prefix_lib(lib: str) -> str:
+        return prefix_marker + lib if lib.startswith(prefix_paths) else lib
+
+    # Fast local
+    list_types = (list, tuple, set)
+    ImportVar_ = ImportVar
+
     for import_dict in imports:
-        for lib, fields in (
-            import_dict if isinstance(import_dict, tuple) else import_dict.items()
-        ):
-            # If the lib is an absolute path, we need to prefix it with a $
-            lib = (
-                "$" + lib
-                if lib.startswith(("/utils/", "/components/", "/styles/", "/public/"))
-                else lib
-            )
-            if isinstance(fields, (list, tuple, set)):
-                all_imports[lib].extend(
-                    ImportVar(field) if isinstance(field, str) else field
-                    for field in fields
-                )
+        # Pull keys/values for all input forms just once
+        if isinstance(import_dict, tuple):
+            items = import_dict
+        else:
+            items = import_dict.items()
+        for lib, fields in items:
+            lib = prefix_lib(lib)
+            # Fast path for usual type
+            if isinstance(fields, str):
+                all_imports[lib].append(ImportVar_(fields))
+            # For a batch of fields
+            elif isinstance(fields, list_types):
+                vals = all_imports[lib]
+                vals_extend = vals.extend
+                # Micro-opt: avoid using generator for small collections
+                to_add = []
+                for field in fields:
+                    if isinstance(field, str):
+                        to_add.append(ImportVar_(field))
+                    else:
+                        to_add.append(field)
+                vals_extend(to_add)
             else:
                 all_imports[lib].append(
-                    ImportVar(fields) if isinstance(fields, str) else fields
+                    fields if not isinstance(fields, str) else ImportVar_(fields)
                 )
     return all_imports
 
