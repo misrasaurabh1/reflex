@@ -22,6 +22,7 @@ import typing
 import zipfile
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
 from typing import NamedTuple
@@ -2110,4 +2111,12 @@ def get_user_tier():
         authenticated_token[1].get("tier", "").lower()
         if authenticated_token[0]
         else "anonymous"
+    )
+
+
+@lru_cache(maxsize=1)
+def _get_output_path() -> str:
+    """Compute and cache the absolute output path for Tailwind config."""
+    return str(
+        (environment.REFLEX_WEB_WORKDIR.get() / constants.Tailwind.CONFIG).absolute()
     )
