@@ -417,8 +417,6 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
         Raises:
             ReflexRuntimeError: If the state is instantiated directly by end user.
         """
-        from reflex.utils.exceptions import ReflexRuntimeError
-
         if not _reflex_internal_init and not is_testing_env():
             raise ReflexRuntimeError(
                 "State classes should not be instantiated directly in a Reflex app. "
@@ -430,18 +428,17 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
             )
         kwargs["parent_state"] = parent_state
         super().__init__()
-        for name, value in kwargs.items():
-            setattr(self, name, value)
+        self.__dict__.update(kwargs)
 
-        # Setup the substates (for memory state manager only).
         if init_substates:
-            for substate in self.get_substates():
-                self.substates[substate.get_name()] = substate(
+            substates = self.get_substates()
+            self_substates = self.substates
+            for substate in substates:
+                self_substates[substate.get_name()] = substate(
                     parent_state=self,
                     _reflex_internal_init=True,
                 )
 
-        # Create a fresh copy of the backend variables for this instance
         self._backend_vars = copy.deepcopy(self.backend_vars)
 
     def __repr__(self) -> str:
@@ -1461,8 +1458,10 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
             The root state of the state tree.
         """
         parent_state = self
-        while parent_state.parent_state is not None:
-            parent_state = parent_state.parent_state
+        ps = parent_state.parent_state
+        while ps is not None:
+            parent_state = ps
+            ps = parent_state.parent_state
         return parent_state
 
     async def _get_state_from_redis(self, state_cls: type[T_STATE]) -> T_STATE:
