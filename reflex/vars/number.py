@@ -337,7 +337,8 @@ class NumberVar(Var[NUMBER_T], python_types=(int, float)):
         Returns:
             The number floor operation.
         """
-        return number_floor_operation(self)
+        # Directly call var_operation_return to avoid decorator overhead.
+        return var_operation_return(js_expression=f"Math.floor({self})", var_type=int)
 
     def __trunc__(self):
         """Trunc the number.
