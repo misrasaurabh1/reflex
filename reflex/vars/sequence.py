@@ -1498,7 +1498,13 @@ def array_gt_operation(lhs: ArrayVar | list | tuple, rhs: ArrayVar | list | tupl
     Returns:
         The array greater than operation.
     """
-    return var_operation_return(js_expression=f"{lhs} > {rhs}", var_type=bool)
+    # Use string concatenation (a tiny speedup for trivial f-string)
+    # Inline CustomVarOperationReturn.create, removing var_operation_return.
+    return CustomVarOperationReturn.create(
+        str(lhs) + " > " + str(rhs),
+        bool,
+        None,
+    )
 
 
 @var_operation
