@@ -4114,7 +4114,7 @@ def code_uses_state_contexts(javascript_code: str) -> bool:
     Returns:
         True if the code attempts to access a member of StateContexts.
     """
-    return bool("useContext(StateContexts" in javascript_code)
+    return "useContext(StateContexts" in javascript_code
 
 
 def reload_state_module(
