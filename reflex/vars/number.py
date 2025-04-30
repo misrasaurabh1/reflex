@@ -431,7 +431,8 @@ class NumberVar(Var[NUMBER_T], python_types=(int, float)):
         Returns:
             bool: True if the number is a float.
         """
-        return safe_issubclass(self._var_type, float)
+        # Using == instead of issubclass for exact type match is faster if only exact float type is desired.
+        return self._var_type is float
 
     def _is_strict_int(self) -> bool:
         """Check if the number is an int.
