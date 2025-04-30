@@ -435,8 +435,9 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
 
         # Setup the substates (for memory state manager only).
         if init_substates:
+            substates = self.substates  # local var for perf
             for substate in self.get_substates():
-                self.substates[substate.get_name()] = substate(
+                substates[substate.get_name()] = substate(
                     parent_state=self,
                     _reflex_internal_init=True,
                 )
@@ -864,12 +865,14 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
                 )
 
     @classmethod
+    @functools.cache
     def get_skip_vars(cls) -> set[str]:
         """Get the vars to skip when serializing.
 
         Returns:
             The vars to skip when serializing.
         """
+        # Cached for performance: benchmark shows set(cls.inherited_vars) is slow.
         return (
             set(cls.inherited_vars)
             | {
