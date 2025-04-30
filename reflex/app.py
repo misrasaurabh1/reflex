@@ -53,6 +53,7 @@ from reflex.components.component import (
     Component,
     ComponentStyle,
     evaluate_style_namespaces,
+    memo,
 )
 from reflex.components.core.banner import (
     backend_disabled,
@@ -1094,15 +1095,7 @@ class App(MiddlewareMixin, LifespanMixin):
 
     def _setup_sticky_badge(self):
         """Add the sticky badge to the app."""
-        from reflex.components.component import memo
-
-        @memo
-        def memoized_badge():
-            sticky_badge = sticky()
-            sticky_badge._add_style_recursive({})
-            return sticky_badge
-
-        self.app_wraps[(0, "StickyBadge")] = lambda _: memoized_badge()
+        self.app_wraps[(0, "StickyBadge")] = lambda _: self._get_sticky_badge()
 
     def _apply_decorated_pages(self):
         """Add @rx.page decorated pages to the app.
@@ -1666,6 +1659,19 @@ class App(MiddlewareMixin, LifespanMixin):
                         f"Provided custom {handler_domain} exception handler `{_fn_name}` has the wrong return type."
                         f"Expected `EventSpec | list[EventSpec] | None` but got `{return_type}`"
                     )
+
+    def _get_sticky_badge(self):
+        # Lazily create and cache the memoized badge once per instance
+        if self._sticky_badge is None:
+
+            @memo
+            def memoized_badge():
+                sticky_badge = sticky()
+                sticky_badge._add_style_recursive({})
+                return sticky_badge
+
+            self._sticky_badge = memoized_badge()
+        return self._sticky_badge
 
 
 async def process(
