@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import stat
+from functools import lru_cache
 from pathlib import Path
 
 from reflex.config import environment, get_config
@@ -151,8 +152,9 @@ def which(program: str | Path) -> Path | None:
     Returns:
         The path to the executable.
     """
-    which_result = shutil.which(program)
-    return Path(which_result) if which_result else None
+    program_str = str(program) if isinstance(program, Path) else program
+    result = shutil.which(program_str)
+    return Path(result) if result is not None else None
 
 
 def use_system_bun() -> bool:
@@ -182,13 +184,17 @@ def get_node_path() -> Path | None:
     return which("node")
 
 
+@lru_cache(
+    maxsize=1
+)  # Cache for repeated calls, as the npm path is unlikely to change in a process
 def get_npm_path() -> Path | None:
     """Get npm binary path.
 
     Returns:
         The path to the npm binary file.
     """
-    return npm_path.absolute() if (npm_path := which("npm")) else None
+    npm_path = which("npm")
+    return npm_path if npm_path else None
 
 
 def get_bun_path() -> Path | None:
