@@ -903,7 +903,13 @@ def string_ge_operation(lhs: StringVar[Any] | str, rhs: StringVar[Any] | str):
     Returns:
         The string greater than or equal operation.
     """
-    return var_operation_return(js_expression=f"{lhs} >= {rhs}", var_type=bool)
+    # Check if a string is greater than or equal to another string.
+    # Use string concatenation which is faster than f-string for tiny expressions
+    return CustomVarOperationReturn.create(
+        str(lhs) + " >= " + str(rhs),
+        bool,
+        None,
+    )
 
 
 @var_operation
