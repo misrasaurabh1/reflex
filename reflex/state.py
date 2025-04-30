@@ -196,8 +196,12 @@ def _split_substate_key(substate_key: str) -> tuple[str, str]:
     Returns:
         Tuple of token and state name.
     """
-    token, _, state_name = substate_key.partition("_")
-    return token, state_name
+    # Slight optimization: .partition is already O(N) but we only call it once per key, this is efficient.
+    idx = substate_key.find("_")
+    if idx == -1:
+        # Return full string as token and empty state_name if no '_' present, to avoid always creating a 3-tuple.
+        return substate_key, ""
+    return substate_key[:idx], substate_key[idx + 1 :]
 
 
 @dataclasses.dataclass(frozen=True, init=False)
@@ -3538,9 +3542,11 @@ class StateManagerRedis(StateManager):
         Returns:
             The redis lock key for the token.
         """
-        # All substates share the same lock domain, so ignore any substate path suffix.
-        client_token = _split_substate_key(token)[0]
-        return f"{client_token}_lock".encode()
+        # Optimization: Avoid calling _split_substate_key(token) if "_" not in token
+        idx = token.find("_")
+        client_token = token if idx == -1 else token[:idx]
+        # Faster and more memory-efficient interpolated bytes construction
+        return (client_token + "_lock").encode()
 
     async def _try_get_lock(self, lock_key: bytes, lock_id: bytes) -> bool | None:
         """Try to get a redis lock for a token.
