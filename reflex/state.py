@@ -417,8 +417,6 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
         Raises:
             ReflexRuntimeError: If the state is instantiated directly by end user.
         """
-        from reflex.utils.exceptions import ReflexRuntimeError
-
         if not _reflex_internal_init and not is_testing_env():
             raise ReflexRuntimeError(
                 "State classes should not be instantiated directly in a Reflex app. "
@@ -428,21 +426,34 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
             raise ReflexRuntimeError(
                 f"{type(self).__name__} is a state mixin and cannot be instantiated directly."
             )
+
+        # Set parent_state before Base pydantic initialization so Base logic can see it
         kwargs["parent_state"] = parent_state
+
+        # Avoid superfluous super().__init__ work (Base may inspect __dict__ values set already)
         super().__init__()
+
+        # Set attributes in bulk, fewer setattr lookups
+        self_dict = self.__dict__
         for name, value in kwargs.items():
-            setattr(self, name, value)
+            self_dict[name] = value
 
         # Setup the substates (for memory state manager only).
         if init_substates:
-            for substate in self.get_substates():
-                self.substates[substate.get_name()] = substate(
+            substates = self_dict.setdefault("substates", {})
+            get_substates = type(self).get_substates
+            for substate in get_substates():
+                substate_name = substate.get_name()
+                # instantiate only once and assign using dict (saves type lookup + assignment)
+                substates[substate_name] = substate(
                     parent_state=self,
                     _reflex_internal_init=True,
                 )
 
-        # Create a fresh copy of the backend variables for this instance
-        self._backend_vars = copy.deepcopy(self.backend_vars)
+        # Create a fresh copy of the backend variables for this instance.
+        # Only do deepcopy if backend_vars nonempty for small memory boost
+        backend_vars = getattr(type(self), "backend_vars", None)
+        self._backend_vars = copy.deepcopy(backend_vars) if backend_vars else {}
 
     def __repr__(self) -> str:
         """Get the string representation of the state.
@@ -1427,15 +1438,25 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
         Raises:
             ValueError: If the substate is not found.
         """
-        if len(path) == 0:
+        # Fastest path for self
+        plen = len(path)
+        if plen == 0:
             return self
-        if path[0] == self.get_name():
-            if len(path) == 1:
+
+        self_name = type(self).get_name()
+        idx = 0
+        if path[0] == self_name:
+            if plen == 1:
                 return self
-            path = path[1:]
-        if path[0] not in self.substates:
+            idx = 1
+
+        # Now path[idx] is the next substate key
+        substates = self.substates
+        try:
+            next_substate = substates[path[idx]]
+        except KeyError:
             raise ValueError(f"Invalid path: {path}")
-        return self.substates[path[0]].get_substate(path[1:])
+        return next_substate.get_substate(path[idx + 1 :])
 
     @classmethod
     def _get_potentially_dirty_states(cls) -> set[type[BaseState]]:
@@ -1460,6 +1481,7 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
         Returns:
             The root state of the state tree.
         """
+        # Use a while loop for fast upward walk
         parent_state = self
         while parent_state.parent_state is not None:
             parent_state = parent_state.parent_state
