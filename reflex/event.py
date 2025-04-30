@@ -566,7 +566,8 @@ def input_event(e: ObjectVar[JavascriptInputEvent]) -> tuple[Var[str]]:
     Returns:
         The value from the input event.
     """
-    return (e.target.value,)
+    value = e.target.value  # Cache the attribute lookup
+    return (value,)
 
 
 def int_input_event(e: ObjectVar[JavascriptInputEvent]) -> tuple[Var[int]]:
