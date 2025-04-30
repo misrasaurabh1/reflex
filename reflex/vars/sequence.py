@@ -1775,12 +1775,11 @@ class LiteralColorVar(CachedVarOperation, LiteralVar, ColorVar):
         Returns:
             The var.
         """
-        return cls(
-            _js_expr="",
-            _var_type=_var_type or Color,
-            _var_data=_var_data,
-            _var_value=value,
-        )
+        # Precompute the var_type once to avoid repeated 'or' resolution
+        var_type = _var_type if _var_type is not None else Color
+        # Use direct tuple unpacking to minimize per-attribute assignment overhead
+        args = ("", var_type, _var_data, value)
+        return cls(*args)
 
     def __hash__(self) -> int:
         """Get the hash of the var.
