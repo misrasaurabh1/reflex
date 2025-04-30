@@ -3832,14 +3832,15 @@ class MutableProxy(wrapt.ObjectProxy):
         Returns:
             Whether the current function is called from dataclasses internal code.
         """
-        # Walk up the stack a bit to see if we are called from dataclasses
-        # internal code, for example `asdict` or `astuple`.
+        # Use faster stack-walking: avoid inspect.getfile
+        dataclasses_file = dataclasses.__file__
         frame = inspect.currentframe()
         for _ in range(5):
-            # Why not `inspect.stack()` -- this is much faster!
-            if not (frame := frame and frame.f_back):
+            frame = frame.f_back if frame else None
+            if frame is None:
                 break
-            if inspect.getfile(frame) == dataclasses.__file__:
+            # Use f_code.co_filename for speed (equivalent for our use case)
+            if frame.f_code.co_filename == dataclasses_file:
                 return True
         return False
 
