@@ -1526,7 +1526,10 @@ def array_ge_operation(lhs: ArrayVar | list | tuple, rhs: ArrayVar | list | tupl
     Returns:
         The array greater than or equal operation.
     """
-    return var_operation_return(js_expression=f"{lhs} >= {rhs}", var_type=bool)
+    # Use direct string concatenation for slightly better performance
+    return var_operation_return(
+        js_expression=str(lhs) + " >= " + str(rhs), var_type=bool
+    )
 
 
 @var_operation
