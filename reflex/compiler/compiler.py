@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from datetime import datetime
+from functools import lru_cache
 from inspect import getmodule
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -84,6 +85,7 @@ def _compile_app(app_root: Component) -> str:
     )
 
 
+@lru_cache(maxsize=128)
 def _compile_theme(theme: str) -> str:
     """Compile the theme.
 
