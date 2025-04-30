@@ -329,7 +329,8 @@ class NumberVar(Var[NUMBER_T], python_types=(int, float)):
         Returns:
             The number ceil operation.
         """
-        return number_ceil_operation(self)
+        # Directly use var_operation_return for maximum efficiency.
+        return var_operation_return(js_expression=f"Math.ceil({self})", var_type=int)
 
     def __floor__(self):
         """Floor the number.
