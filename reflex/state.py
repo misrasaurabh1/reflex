@@ -1992,8 +1992,23 @@ class BaseState(Base, ABC, extra=pydantic.Extra.allow):
         Returns:
             Whether this state instance was ever modified.
         """
-        # Ensure the flag is up to date based on the current dirty_vars
-        self._update_was_touched()
+        # Fast path: once set, always True
+        if self._was_touched:
+            return True
+
+        dirty_vars = self.dirty_vars
+        if dirty_vars:
+            # Use set intersection for fast check
+            # base_vars and _backend_vars are dicts, so we use their keys as sets
+            if dirty_vars.intersection(self.base_vars) or dirty_vars.intersection(
+                self._backend_vars
+            ):
+                self._was_touched = True
+                return True
+            # Check special case for router_data, minimal branch
+            if constants.ROUTER_DATA in dirty_vars and self.parent_state is None:
+                self._was_touched = True
+                return True
         return self._was_touched
 
     def _clean(self):
