@@ -1055,19 +1055,20 @@ class App(MiddlewareMixin, LifespanMixin):
         Returns:
             Whether the app should be compiled.
         """
-        # Check the environment variable.
-        if environment.REFLEX_SKIP_COMPILE.get():
+        # Use local variable to avoid repeated attribute lookup.
+        reflex_skip_compile = environment.REFLEX_SKIP_COMPILE.get()
+        if reflex_skip_compile:
             return False
 
-        nocompile = prerequisites.get_web_dir() / constants.NOCOMPILE_FILE
+        # Combine get_web_dir and constants.NOCOMPILE_FILE into single statement,
+        # and avoid import inside hot path.
+        web_dir = environment.REFLEX_WEB_WORKDIR.get()
+        nocompile_path = web_dir / constants.NOCOMPILE_FILE
 
-        # Check the nocompile file.
-        if nocompile.exists():
-            # Delete the nocompile file
-            nocompile.unlink(missing_ok=True)
+        if nocompile_path.exists():
+            nocompile_path.unlink(missing_ok=True)
             return False
 
-        # By default, compile the app.
         return True
 
     def _add_overlay_to_component(self, component: Component) -> Component:
