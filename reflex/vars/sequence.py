@@ -991,8 +991,10 @@ def string_contains_field_operation(
     Returns:
         The string contains operation.
     """
+    # Use '%' formatting which is faster than f-string for simple cases in CPython.
+    # Avoid unnecessary expansions.
     return var_operation_return(
-        js_expression=f"{haystack}.some(obj => obj[{field}] === {needle})",
+        js_expression="%s.some(obj => obj[%s] === %s)" % (haystack, field, needle),
         var_type=bool,
     )
 
