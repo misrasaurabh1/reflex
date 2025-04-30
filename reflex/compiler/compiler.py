@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from datetime import datetime
+from functools import lru_cache
 from inspect import getmodule
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -607,11 +608,12 @@ def compile_tailwind(
     Returns:
         The compiled Tailwind config.
     """
-    # Get the path for the output file.
-    output_path = str((get_web_dir() / constants.Tailwind.CONFIG).absolute())
+    # Use cached output path.
+    output_path = _get_output_path()
 
-    # Compile the config.
-    code = _compile_tailwind(config)
+    # Compile Tailwind config using a local reference.
+    render = templates.TAILWIND_CONFIG.render
+    code = render(**config)
     return output_path, code
 
 
@@ -828,6 +830,14 @@ def compile_unevaluated_page(
     )
 
     return component, enable_state
+
+
+@lru_cache(maxsize=1)
+def _get_output_path() -> str:
+    """Compute and cache the absolute output path for Tailwind config."""
+    return str(
+        (environment.REFLEX_WEB_WORKDIR.get() / constants.Tailwind.CONFIG).absolute()
+    )
 
 
 class ExecutorSafeFunctions:
