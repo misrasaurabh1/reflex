@@ -345,7 +345,8 @@ class NumberVar(Var[NUMBER_T], python_types=(int, float)):
         Returns:
             The number trunc operation.
         """
-        return number_trunc_operation(self)
+        # Directly use var_operation_return to avoid decorator overhead.
+        return var_operation_return(js_expression=f"Math.trunc({self})", var_type=int)
 
     def __lt__(self, other: number_types) -> BooleanVar:
         """Less than comparison.
