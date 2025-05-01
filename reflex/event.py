@@ -1592,9 +1592,18 @@ def get_handler_args(
     Returns:
         The handler args.
     """
-    args = inspect.signature(event_spec.handler.fn).parameters
+    fn = event_spec.handler.fn
 
-    return event_spec.args if len(args) > 1 else ()
+    # Use __code__ for fast arg count if available.
+    try:
+        argcount = fn.__code__.co_argcount
+    except AttributeError:
+        # Fallback: covers C functions or callables without __code__.
+        import inspect
+
+        argcount = len(inspect.signature(fn).parameters)
+
+    return event_spec.args if argcount > 1 else ()
 
 
 def fix_events(
