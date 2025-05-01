@@ -433,7 +433,17 @@ def get_context_path() -> str:
     Returns:
         The path of the context module.
     """
-    return str(get_web_dir() / (constants.Dirs.CONTEXTS_PATH + constants.Ext.JS))
+    # Cache result to avoid repeated calculation.
+    if not hasattr(get_context_path, "_cache"):
+        web_dir = get_web_dir()
+        context_filename = constants.Dirs.CONTEXTS_PATH + constants.Ext.JS
+        # If web_dir is a Path, use /, else fallback to string concatenation.
+        try:
+            path = str(web_dir / context_filename)
+        except TypeError:
+            path = str(web_dir) + "/" + context_filename
+        get_context_path._cache = path
+    return get_context_path._cache
 
 
 def get_components_path() -> str:
