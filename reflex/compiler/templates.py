@@ -19,26 +19,37 @@ def _sort_hooks(hooks: dict[str, VarData | None]):
     Returns:
         The sorted hooks.
     """
+    # Pre-fetch hook positions for faster lookup.
+    INTERNAL = Hooks.HookPosition.INTERNAL
+    PRE_TRIGGER = Hooks.HookPosition.PRE_TRIGGER
+    POST_TRIGGER = Hooks.HookPosition.POST_TRIGGER
+
+    CONST_PRE_TRIGGER = constants.Hooks.HookPosition.PRE_TRIGGER
+    CONST_POST_TRIGGER = constants.Hooks.HookPosition.POST_TRIGGER
+
     sorted_hooks = {
-        Hooks.HookPosition.INTERNAL: [],
-        Hooks.HookPosition.PRE_TRIGGER: [],
-        Hooks.HookPosition.POST_TRIGGER: [],
+        INTERNAL: [],
+        PRE_TRIGGER: [],
+        POST_TRIGGER: [],
     }
 
+    append_internal = sorted_hooks[INTERNAL].append
+    append_pre = sorted_hooks[PRE_TRIGGER].append
+    append_post = sorted_hooks[POST_TRIGGER].append
+
     for hook, data in hooks.items():
-        if data and data.position and data.position == Hooks.HookPosition.INTERNAL:
-            sorted_hooks[Hooks.HookPosition.INTERNAL].append((hook, data))
-        elif not data or (
-            not data.position
-            or data.position == constants.Hooks.HookPosition.PRE_TRIGGER
-        ):
-            sorted_hooks[Hooks.HookPosition.PRE_TRIGGER].append((hook, data))
-        elif (
-            data
-            and data.position
-            and data.position == constants.Hooks.HookPosition.POST_TRIGGER
-        ):
-            sorted_hooks[Hooks.HookPosition.POST_TRIGGER].append((hook, data))
+        if data is None:
+            # If data is None, goes to PRE_TRIGGER.
+            append_pre((hook, data))
+            continue
+        position = getattr(data, "position", None)
+        if position is INTERNAL:
+            append_internal((hook, data))
+        elif (position is None) or (position is CONST_PRE_TRIGGER):
+            append_pre((hook, data))
+        elif position is CONST_POST_TRIGGER:
+            append_post((hook, data))
+        # Anything else is ignored (unreachable if API is consistent).
 
     return sorted_hooks
 
