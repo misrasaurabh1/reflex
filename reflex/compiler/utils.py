@@ -407,11 +407,10 @@ def get_theme_path() -> str:
     Returns:
         The path of the theme style.
     """
-    return str(
-        get_web_dir()
-        / constants.Dirs.UTILS
-        / (constants.PageNames.THEME + constants.Ext.JS)
-    )
+    web_dir = get_web_dir()  # Call once, reuse for better performance
+    # Combine file name extension in a single step
+    theme_filename = f"{constants.PageNames.THEME}{constants.Ext.JS}"
+    return str(web_dir / constants.Dirs.UTILS / theme_filename)
 
 
 def get_root_stylesheet_path() -> str:
