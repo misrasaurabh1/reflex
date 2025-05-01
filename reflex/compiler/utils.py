@@ -7,6 +7,7 @@ import concurrent.futures
 import traceback
 from collections.abc import Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -436,16 +437,19 @@ def get_context_path() -> str:
     return str(get_web_dir() / (constants.Dirs.CONTEXTS_PATH + constants.Ext.JS))
 
 
+@lru_cache(maxsize=1)
 def get_components_path() -> str:
     """Get the path of the compiled components.
 
     Returns:
         The path of the compiled components.
     """
+    # This sequence is a fast pure string concatenation after initial
+    # cached get_web_dir call
     return str(
         get_web_dir()
         / constants.Dirs.UTILS
-        / (constants.PageNames.COMPONENTS + constants.Ext.JS),
+        / (constants.PageNames.COMPONENTS + constants.Ext.JS)
     )
 
 

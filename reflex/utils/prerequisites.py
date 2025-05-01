@@ -22,6 +22,7 @@ import typing
 import zipfile
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from types import ModuleType
 from typing import NamedTuple
@@ -77,6 +78,7 @@ class CpuInfo:
     address_width: int | None
 
 
+@lru_cache(maxsize=1)
 def get_web_dir() -> Path:
     """Get the working directory for the next.js commands.
 
