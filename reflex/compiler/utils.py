@@ -27,6 +27,7 @@ from reflex.components.base import (
     Title,
 )
 from reflex.components.component import Component, ComponentStyle, CustomComponent
+from reflex.config import environment
 from reflex.istate.storage import Cookie, LocalStorage, SessionStorage
 from reflex.state import BaseState, _resolve_delta
 from reflex.style import Style
@@ -455,10 +456,17 @@ def get_stateful_components_path() -> str:
     Returns:
         The path of the compiled stateful components.
     """
-    return str(
-        get_web_dir()
-        / constants.Dirs.UTILS
-        / (constants.PageNames.STATEFUL_COMPONENTS + constants.Ext.JS)
+    # Avoid function call overhead by inlining get_web_dir:
+    web_dir = environment.REFLEX_WEB_WORKDIR.get()
+    # Use string concatenation for faster execution instead of pathlib.Path;
+    # assumes web_dir is a Path, so use its str and join constants directly
+    return (
+        str(web_dir)
+        + "/"
+        + constants.Dirs.UTILS
+        + "/"
+        + constants.PageNames.STATEFUL_COMPONENTS
+        + constants.Ext.JS
     )
 
 
