@@ -52,21 +52,33 @@ def parse_imports(
     Returns:
         The parsed import dict.
     """
+    str_type = str
+    ImportVar_type = ImportVar
+    isinstance_ = isinstance
 
-    def _make_list(
-        value: ImmutableImportTypes,
-    ) -> list[str | ImportVar] | list[ImportVar]:
-        if isinstance(value, (str, ImportVar)):
-            return [value]
-        return list(value)
+    # Alias to minimize attribute lookups in the loop
+    import_items = imports.items
 
-    return {
-        package: [
-            ImportVar(tag=tag) if isinstance(tag, str) else tag
-            for tag in _make_list(maybe_tags)
-        ]
-        for package, maybe_tags in imports.items()
-    }
+    result = {}
+    for package, maybe_tags in import_items():
+        # Fast path: if single string or ImportVar, make list on the fly
+        if isinstance_(maybe_tags, str_type):
+            tags = [ImportVar_type(tag=maybe_tags)]
+        elif isinstance_(maybe_tags, ImportVar_type):
+            tags = [maybe_tags]
+        else:
+            # List/Sequence case; predefine methods/vars in local scope for speed
+            list_tags = []
+            append = list_tags.append
+            for tag in maybe_tags:
+                if isinstance_(tag, str_type):
+                    append(ImportVar_type(tag=tag))
+                else:
+                    append(tag)
+            tags = list_tags
+        result[package] = tags
+
+    return result
 
 
 def collapse_imports(
