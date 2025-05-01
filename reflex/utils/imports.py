@@ -19,25 +19,42 @@ def merge_imports(
         The merged import dicts.
     """
     all_imports: defaultdict[str, list[ImportVar]] = defaultdict(list)
+    prefix_set = ("/utils/", "/components/", "/styles/", "/public/")
+
     for import_dict in imports:
-        for lib, fields in (
-            import_dict if isinstance(import_dict, tuple) else import_dict.items()
-        ):
-            # If the lib is an absolute path, we need to prefix it with a $
-            lib = (
-                "$" + lib
-                if lib.startswith(("/utils/", "/components/", "/styles/", "/public/"))
-                else lib
-            )
-            if isinstance(fields, (list, tuple, set)):
-                all_imports[lib].extend(
-                    ImportVar(field) if isinstance(field, str) else field
-                    for field in fields
-                )
+        # Support both dict (including defaultdict) and tuple inputs
+        if isinstance(import_dict, tuple):
+            items = import_dict
+        else:
+            items = import_dict.items()
+
+        for lib, fields in items:
+            # Only prefix if lib starts with any of the designated strings
+            if lib.startswith(prefix_set):
+                lib_key = "$" + lib
             else:
-                all_imports[lib].append(
-                    ImportVar(fields) if isinstance(fields, str) else fields
-                )
+                lib_key = lib
+
+            # Fast-path: most likely formats first, to minimize isinstance overhead
+            # Only support str and ImportVar for elements in `fields`
+            if isinstance(fields, str):
+                # Convert str field to ImportVar, else assume already ImportVar
+                all_imports[lib_key].append(ImportVar(fields))
+            elif isinstance(fields, ImportVar):
+                all_imports[lib_key].append(fields)
+            elif isinstance(fields, (list, tuple, set)):
+                # Preprocess to append, avoids calling type field N times
+                vals = all_imports[lib_key]
+                # Inline: only convert str to ImportVar, else passthrough
+                for field in fields:
+                    if isinstance(field, str):
+                        vals.append(ImportVar(field))
+                    else:
+                        vals.append(field)
+            else:
+                # fields is neither str, ImportVar, nor a container: treat as single ImportVar
+                all_imports[lib_key].append(fields)
+
     return all_imports
 
 
