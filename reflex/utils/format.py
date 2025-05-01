@@ -198,7 +198,9 @@ def to_title_case(text: str, sep: str = "") -> str:
     Returns:
         The title case string.
     """
-    return sep.join(word.title() for word in text.split("_"))
+    # Use local reference for str.title for slight speedup and list comprehension for join
+    title = str.title
+    return sep.join([title(word) for word in text.split("_")])
 
 
 def to_kebab_case(text: str) -> str:
