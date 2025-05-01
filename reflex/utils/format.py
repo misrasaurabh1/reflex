@@ -164,8 +164,24 @@ def to_snake_case(text: str) -> str:
     Returns:
         The snake case string.
     """
-    s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", text)
-    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower().replace("-", "_")
+    # Replace hyphens with underscores first for consistency
+    text = text.replace("-", "_")
+    if not text:
+        return ""
+    chars = []
+    prev_lower_or_digit = False
+    for idx, c in enumerate(text):
+        if c.isupper():
+            if idx > 0 and (
+                prev_lower_or_digit or (idx + 1 < len(text) and text[idx + 1].islower())
+            ):
+                chars.append("_")
+            chars.append(c.lower())
+            prev_lower_or_digit = False
+        else:
+            chars.append(c)
+            prev_lower_or_digit = c.islower() or c.isdigit()
+    return "".join(chars)
 
 
 def to_camel_case(text: str, treat_hyphens_as_underscores: bool = True) -> str:
