@@ -656,24 +656,24 @@ def format_library_name(library_fullname: str | dict[str, Any]) -> str:
         KeyError: If library_fullname is a dictionary without a 'name' key.
         TypeError: If library_fullname or its 'name' value is not a string.
     """
-    # If input is a dictionary, extract the 'name' key
+    # Fast-path for dictionary extraction and type checks
     if isinstance(library_fullname, dict):
-        if "name" not in library_fullname:
+        try:
+            library_fullname = library_fullname["name"]
+        except KeyError:
             raise KeyError("Dictionary input must contain a 'name' key")
-        library_fullname = library_fullname["name"]
-
-    # Process the library name as a string
     if not isinstance(library_fullname, str):
         raise TypeError("Library name must be a string")
 
+    # Early return if URL, fastest check
     if library_fullname.startswith("https://"):
         return library_fullname
 
-    lib, at, version = library_fullname.rpartition("@")
-    if not lib:
-        lib = at + version
-
-    return lib
+    # Remove @version suffix if present, fast rfind instead of rpartition
+    idx = library_fullname.rfind("@")
+    if idx > 0:
+        return library_fullname[:idx]
+    return library_fullname
 
 
 def json_dumps(obj: Any, **kwargs) -> str:
