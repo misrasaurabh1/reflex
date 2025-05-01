@@ -1592,9 +1592,17 @@ def get_handler_args(
     Returns:
         The handler args.
     """
-    args = inspect.signature(event_spec.handler.fn).parameters
+    # Use __code__.co_argcount for speed.
+    # For bound methods, subtract 1 for 'self'.
+    fn = event_spec.handler.fn
+    arg_count = fn.__code__.co_argcount
 
-    return event_spec.args if len(args) > 1 else ()
+    # event_spec.handler.fn may be a bound method or plain function
+    # If it's a bound method, it has __self__ attribute.
+    if hasattr(fn, "__self__") and fn.__self__ is not None:
+        arg_count -= 1
+
+    return event_spec.args if arg_count > 1 else ()
 
 
 def fix_events(
