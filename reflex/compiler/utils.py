@@ -156,10 +156,11 @@ def get_import_dict(lib: str, default: str = "", rest: list[str] | None = None) 
     Returns:
         A dictionary for import template.
     """
+    # Use 'is not None' for the most predictable and efficient handling of 'rest'
     return {
         "lib": lib,
         "default": default,
-        "rest": rest if rest else [],
+        "rest": rest if rest is not None else [],
     }
 
 
