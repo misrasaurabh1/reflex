@@ -543,5 +543,18 @@ def is_valid_url(url: str) -> bool:
     Returns:
         Whether url is valid.
     """
+    # Very fast check: split once at '://', and make sure both sides are non-empty for common schemes
+    scheme_sep = url.find("://")
+    if scheme_sep > 0:
+        # Now quickly check there's something after '://'
+        netloc_start = scheme_sep + 3
+        netloc_end = url.find("/", netloc_start)
+        if netloc_end == -1:
+            netloc_end = len(url)
+        # Only check netloc, not username@host:port deeply (that'd require urlparse anyway)
+        if netloc_end > netloc_start:
+            return True
+
+    # Fallback for weird cases
     result = urlparse(url)
-    return all([result.scheme, result.netloc])
+    return bool(result.scheme and result.netloc)
