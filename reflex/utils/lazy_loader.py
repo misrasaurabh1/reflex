@@ -17,7 +17,6 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 
 from __future__ import annotations
 
-import copy
 import importlib
 import os
 import sys
@@ -43,24 +42,44 @@ def attach(
     Returns:
         __getattr__, __dir__, __all__
     """
-    submod_attrs = copy.deepcopy(submod_attrs)
+    # Minor fast-path: setattrs = () if None
     if submod_attrs:
-        for k, v in submod_attrs.items():
-            # when flattening the list, only keep the alias in the tuple(mod[1])
-            submod_attrs[k] = [
-                mod if not isinstance(mod, tuple) else mod[1] for mod in v
-            ]
-
-    if submod_attrs is None:
+        # Try to avoid 'any(isinstance...)' cost and the following costly flatten if not needed
+        needs_flatten = False
+        # Only scan until first tuple found
+        for v in submod_attrs.values():
+            for mod in v:
+                if isinstance(mod, tuple):
+                    needs_flatten = True
+                    break
+            if needs_flatten:
+                break
+        if needs_flatten:
+            # Flatten with generator for better cache and lower temporary overhead
+            submod_attrs = {
+                k: [(mod if not isinstance(mod, tuple) else mod[1]) for mod in v]
+                for k, v in submod_attrs.items()
+            }
+        else:
+            # Even this shallow copy is often unnecessary;
+            # but to guarantee no mutation of input, keep it
+            submod_attrs = dict(submod_attrs)
+    else:
         submod_attrs = {}
 
     submodules = set(submodules) if submodules is not None else set()
 
+    # Optimize: use dict comprehension directly for attr_to_modules
     attr_to_modules = {
         attr: mod for mod, attrs in submod_attrs.items() for attr in attrs
     }
 
-    __all__ = sorted(submodules | attr_to_modules.keys())
+    # __all__ will contain everything from submodules and attribute keys
+    # Avoid intermediate memory use: use generator and sort in-place
+    __all__ = list(submodules)
+    __all__.extend(attr_to_modules.keys())
+    if len(__all__) > 1:
+        __all__.sort()
 
     def __getattr__(name: str):  # noqa: N807
         if name in submodules:
@@ -84,8 +103,13 @@ def attach(
     def __dir__():  # noqa: N807
         return __all__
 
+    # EAGER_IMPORT optimization: avoid allocating extra sets for union
     if os.environ.get("EAGER_IMPORT", ""):
-        for attr in set(attr_to_modules.keys()) | submodules:
+        for attr in submodules:
             __getattr__(attr)
+        for attr in attr_to_modules:
+            # Avoid double-import for names that are both a submodule and attr_to_modules key
+            if attr not in submodules:
+                __getattr__(attr)
 
-    return __getattr__, __dir__, list(__all__)
+    return __getattr__, __dir__, __all__
